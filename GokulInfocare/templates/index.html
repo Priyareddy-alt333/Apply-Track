@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ApplyTrack — Job Application Tracker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <div class="eyebrow">PERSONAL PRODUCTIVITY TOOL</div>
+    <h1>ApplyTrack</h1>
+    <p>Keep your applications organised. Know when it’s time to follow up.</p>
+  </div>
+  <span class="pill">Python · Flask · SQLite</span>
+</header>
+
+<main class="container">
+  <section class="stats">
+    <article class="stat"><span>Total applications</span><strong>{{ total }}</strong></article>
+    <article class="stat"><span>Currently applied</span><strong>{{ applied }}</strong></article>
+    <article class="stat highlight"><span>Follow-ups needed</span><strong>{{ followups }}</strong></article>
+  </section>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <section class="panel">
+    <h2>Add an application</h2>
+    <form action="{{ url_for('add_application') }}" method="post" class="add-form">
+      <label>Company<input name="company" placeholder="e.g. ABC Technologies" required></label>
+      <label>Job role<input name="role" placeholder="e.g. Junior Python Developer" required></label>
+      <label>Date applied<input type="date" name="applied_on" required></label>
+      <label>Status
+        <select name="status">
+          {% for status in statuses %}<option value="{{ status }}">{{ status }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="wide">Notes<input name="notes" placeholder="Optional: contact, next step, or reminder"></label>
+      <button type="submit">＋ Add application</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="list-heading">
+      <div><h2>Your applications</h2><p>Applications marked “Applied” for more than 7 days need a follow-up.</p></div>
+      <form method="get" class="filters">
+        <input name="q" value="{{ search }}" placeholder="Search company or role">
+        <select name="status">
+          <option value="">All statuses</option>
+          {% for status in statuses %}
+            <option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>{{ status }}</option>
+          {% endfor %}
+        </select>
+        <button class="secondary">Filter</button>
+      </form>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Company / role</th><th>Date applied</th><th>Waiting</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+        {% for item in applications %}
+          <tr>
+            <td><strong>{{ item.company }}</strong><small>{{ item.role }}</small>{% if item.notes %}<small class="notes">{{ item.notes }}</small>{% endif %}</td>
+            <td>{{ item.applied_on }}</td>
+            <td>{{ item.days_waiting }} days</td>
+            <td>
+              {% if item.needs_followup %}<span class="tag warning">Follow up</span>{% else %}<span class="tag">{{ item.status }}</span>{% endif %}
+              <form action="{{ url_for('update_status', application_id=item.id) }}" method="post" class="inline-form">
+                <select name="status" aria-label="Change status">
+                  {% for status in statuses %}<option value="{{ status }}" {% if item.status == status %}selected{% endif %}>{{ status }}</option>{% endfor %}
+                </select>
+                <button class="tiny secondary">Save</button>
+              </form>
+            </td>
+            <td><form action="{{ url_for('delete_application', application_id=item.id) }}" method="post" onsubmit="return confirm('Delete this application?')"><button class="tiny danger">Delete</button></form></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="empty">No applications match. Add one above or clear your filters.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <footer>Demo project built with AI assistance. Review and test the code before using it with real data.</footer>
+</main>
+</body>
+</html>
